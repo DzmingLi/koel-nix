@@ -1,0 +1,14 @@
+# Nix
+result
+result-*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local testing
+test-config.nix
