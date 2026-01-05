@@ -92,6 +92,7 @@ let
     fileinfo
     redis
     imagick
+    xsl
   ]);
 
   composerEnv = import "${pkgs.path}/pkgs/build-support/php/composer/env.nix" {
