@@ -14,7 +14,11 @@ let
     APP_ENV=${cfg.environment}
     APP_DEBUG=${boolToString cfg.debug}
     APP_URL=${cfg.url}
+    ${if cfg.appKeyFile != null then ''
+    APP_KEY=$(cat ${cfg.appKeyFile})
+    '' else ''
     APP_KEY=${cfg.appKey}
+    ''}
 
     ${optionalString (cfg.trustedHosts != []) ''
     TRUSTED_HOSTS=${concatStringsSep "," cfg.trustedHosts}
@@ -146,10 +150,21 @@ in {
     };
 
     appKey = mkOption {
-      type = types.str;
+      type = types.nullOr types.str;
+      default = null;
       description = ''
         Application key for encryption. Generate with:
         head -c 32 /dev/urandom | base64
+        Either appKey or appKeyFile must be set.
+      '';
+    };
+
+    appKeyFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = ''
+        File containing the application key for encryption.
+        Either appKey or appKeyFile must be set.
       '';
     };
 
@@ -366,6 +381,10 @@ in {
       {
         assertion = cfg.storage.driver == "local" -> cfg.storage.mediaPath != null;
         message = "services.koel.storage.mediaPath must be set when using local storage driver";
+      }
+      {
+        assertion = (cfg.appKey != null) != (cfg.appKeyFile != null);
+        message = "Either services.koel.appKey or services.koel.appKeyFile must be set (but not both)";
       }
     ];
 
