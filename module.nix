@@ -105,17 +105,17 @@ let
     $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
     $kernel->bootstrap();
 
-    $email = getenv('KOEL_INIT_EMAIL') ?: '';
-    $name = getenv('KOEL_INIT_NAME') ?: '';
-    $role = getenv('KOEL_INIT_ROLE') ?: 'admin';
-    $password = getenv('KOEL_INIT_PASSWORD') ?: '';
+    $email = getenv("KOEL_INIT_EMAIL") ?: "";
+    $name = getenv("KOEL_INIT_NAME") ?: "";
+    $role = getenv("KOEL_INIT_ROLE") ?: "admin";
+    $password = getenv("KOEL_INIT_PASSWORD") ?: "";
 
-    if ($email === '' || $password === '') {
+    if ($email === "" || $password === "") {
         fwrite(STDERR, "Missing KOEL_INIT_EMAIL or KOEL_INIT_PASSWORD\n");
         exit(1);
     }
 
-    if (User::query()->where('email', $email)->exists()) {
+    if (User::query()->where("email", $email)->exists()) {
         echo "User already exists, skipping.\n";
         exit(0);
     }
@@ -123,10 +123,10 @@ let
     $organization = Organization::default();
 
     $user = User::query()->create([
-        'email' => $email,
-        'name' => $name !== '' ? $name : $email,
-        'password' => Hash::make($password),
-        'organization_id' => $organization->id,
+        "email" => $email,
+        "name" => $name !== "" ? $name : $email,
+        "password" => Hash::make($password),
+        "organization_id" => $organization->id,
     ]);
 
     $user->syncRoles(RoleEnum::from($role));
