@@ -461,51 +461,51 @@ in {
               ${pkgs.git}/bin/git fetch --depth 1 origin tag ${cfg.version}
               ${pkgs.git}/bin/git checkout ${cfg.version}
             fi
-
-            # Generate .env file before running composer
-            echo "Generating environment configuration..."
-            rm -f ${stateDir}/.env
-            cp ${koelEnvTemplate} ${stateDir}/.env
-            chmod 600 ${stateDir}/.env
-
-            # Add secrets from files
-            ${optionalString (cfg.appKeyFile != null) ''
-            echo "APP_KEY=$(cat ${cfg.appKeyFile})" >> ${stateDir}/.env
-            ''}
-            ${optionalString (cfg.database.type != "sqlite-persistent" && cfg.database.passwordFile != null) ''
-            echo "DB_PASSWORD=$(cat ${cfg.database.passwordFile})" >> ${stateDir}/.env
-            ''}
-            ${optionalString (cfg.search.driver == "meilisearch" && cfg.search.meilisearch.keyFile != null) ''
-            echo "MEILISEARCH_KEY=$(cat ${cfg.search.meilisearch.keyFile})" >> ${stateDir}/.env
-            ''}
-
-            # Install PHP dependencies
-            echo "Installing PHP dependencies with Composer..."
-            cd ${stateDir}
-            export COMPOSER_ALLOW_SUPERUSER=1
-            ${phpPackage.packages.composer}/bin/composer install \
-              --no-dev \
-              --no-interaction \
-              --no-progress \
-              --optimize-autoloader
-
-            # Install and build frontend assets
-            echo "Installing Node.js dependencies..."
-            export npm_config_script_shell=${pkgs.bash}/bin/bash
-            ${pkgs.nodejs}/bin/npm install --no-audit --no-fund
-
-            echo "Building frontend assets..."
-            export npm_config_script_shell=${pkgs.bash}/bin/bash
-            ${pkgs.nodejs}/bin/npm run build
           ''}
 
-          # Set up storage directories
+          # Set up storage directories before composer install
           echo "Setting up storage directories..."
           mkdir -p ${stateDir}/storage/framework/{sessions,views,cache}
           mkdir -p ${stateDir}/storage/logs
           mkdir -p ${stateDir}/storage/app/public
           mkdir -p ${stateDir}/bootstrap/cache
           mkdir -p ${stateDir}/database
+
+          # Generate .env file before running composer
+          echo "Generating environment configuration..."
+          rm -f ${stateDir}/.env
+          cp ${koelEnvTemplate} ${stateDir}/.env
+          chmod 600 ${stateDir}/.env
+
+          # Add secrets from files
+          ${optionalString (cfg.appKeyFile != null) ''
+          echo "APP_KEY=$(cat ${cfg.appKeyFile})" >> ${stateDir}/.env
+          ''}
+          ${optionalString (cfg.database.type != "sqlite-persistent" && cfg.database.passwordFile != null) ''
+          echo "DB_PASSWORD=$(cat ${cfg.database.passwordFile})" >> ${stateDir}/.env
+          ''}
+          ${optionalString (cfg.search.driver == "meilisearch" && cfg.search.meilisearch.keyFile != null) ''
+          echo "MEILISEARCH_KEY=$(cat ${cfg.search.meilisearch.keyFile})" >> ${stateDir}/.env
+          ''}
+
+          # Install PHP dependencies
+          echo "Installing PHP dependencies with Composer..."
+          cd ${stateDir}
+          export COMPOSER_ALLOW_SUPERUSER=1
+          ${phpPackage.packages.composer}/bin/composer install \
+            --no-dev \
+            --no-interaction \
+            --no-progress \
+            --optimize-autoloader
+
+          # Install and build frontend assets
+          echo "Installing Node.js dependencies..."
+          export npm_config_script_shell=${pkgs.bash}/bin/bash
+          ${pkgs.nodejs}/bin/npm install --no-audit --no-fund
+
+          echo "Building frontend assets..."
+          export npm_config_script_shell=${pkgs.bash}/bin/bash
+          ${pkgs.nodejs}/bin/npm run build
 
           # Set permissions
           chmod -R 755 ${stateDir}/storage
