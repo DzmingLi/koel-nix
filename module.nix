@@ -462,6 +462,21 @@ in {
               ${pkgs.git}/bin/git checkout ${cfg.version}
             fi
 
+            # Generate .env file before running composer
+            echo "Generating environment configuration..."
+            cp ${koelEnvTemplate} ${stateDir}/.env
+
+            # Add secrets from files
+            ${optionalString (cfg.appKeyFile != null) ''
+            echo "APP_KEY=$(cat ${cfg.appKeyFile})" >> ${stateDir}/.env
+            ''}
+            ${optionalString (cfg.database.type != "sqlite-persistent" && cfg.database.passwordFile != null) ''
+            echo "DB_PASSWORD=$(cat ${cfg.database.passwordFile})" >> ${stateDir}/.env
+            ''}
+            ${optionalString (cfg.search.driver == "meilisearch" && cfg.search.meilisearch.keyFile != null) ''
+            echo "MEILISEARCH_KEY=$(cat ${cfg.search.meilisearch.keyFile})" >> ${stateDir}/.env
+            ''}
+
             # Install PHP dependencies
             echo "Installing PHP dependencies with Composer..."
             cd ${stateDir}
@@ -489,21 +504,6 @@ in {
           mkdir -p ${stateDir}/storage/app/public
           mkdir -p ${stateDir}/bootstrap/cache
           mkdir -p ${stateDir}/database
-
-          # Generate .env file
-          echo "Generating environment configuration..."
-          cp ${koelEnvTemplate} ${stateDir}/.env
-
-          # Add secrets from files
-          ${optionalString (cfg.appKeyFile != null) ''
-          echo "APP_KEY=$(cat ${cfg.appKeyFile})" >> ${stateDir}/.env
-          ''}
-          ${optionalString (cfg.database.type != "sqlite-persistent" && cfg.database.passwordFile != null) ''
-          echo "DB_PASSWORD=$(cat ${cfg.database.passwordFile})" >> ${stateDir}/.env
-          ''}
-          ${optionalString (cfg.search.driver == "meilisearch" && cfg.search.meilisearch.keyFile != null) ''
-          echo "MEILISEARCH_KEY=$(cat ${cfg.search.meilisearch.keyFile})" >> ${stateDir}/.env
-          ''}
 
           # Set permissions
           chmod -R 755 ${stateDir}/storage
