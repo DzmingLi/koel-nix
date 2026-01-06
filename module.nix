@@ -421,7 +421,7 @@ in {
         RemainAfterExit = true;
       };
 
-      path = [ phpPackage pkgs.nodejs pkgs.nodejs.pkgs.npm pkgs.git pkgs.unzip ];
+      path = [ phpPackage pkgs.nodejs pkgs.nodejs.pkgs.npm pkgs.git pkgs.unzip pkgs.bash pkgs.coreutils ];
 
       script = let
         targetVersion = if cfg.package != null then "custom" else cfg.version;
@@ -470,9 +470,11 @@ in {
 
             # Install and build frontend assets
             echo "Installing Node.js dependencies..."
+            export npm_config_script_shell=${pkgs.bash}/bin/bash
             ${pkgs.nodejs}/bin/npm install --no-audit --no-fund
 
             echo "Building frontend assets..."
+            export npm_config_script_shell=${pkgs.bash}/bin/bash
             ${pkgs.nodejs}/bin/npm run build
           ''}
 
