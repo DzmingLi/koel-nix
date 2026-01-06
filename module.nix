@@ -689,13 +689,11 @@ in {
 
       path = [ phpPackage ];
 
-      script = ''
-        if [ -z "${cfg.initialUser.password or ""}" ]; then
-          export KOEL_INIT_PASSWORD="$(cat ${cfg.initialUser.passwordFile})"
-        else
-          export KOEL_INIT_PASSWORD="${cfg.initialUser.password}"
-        fi
-
+      script = if cfg.initialUser.passwordFile != null then ''
+        export KOEL_INIT_PASSWORD="$(cat ${cfg.initialUser.passwordFile})"
+        ${phpPackage}/bin/php ${initialUserScript}
+      '' else ''
+        export KOEL_INIT_PASSWORD="${cfg.initialUser.password}"
         ${phpPackage}/bin/php ${initialUserScript}
       '';
     };
