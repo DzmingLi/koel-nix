@@ -471,6 +471,15 @@ in {
           mkdir -p ${stateDir}/bootstrap/cache
           mkdir -p ${stateDir}/database
 
+          # Create empty SQLite database file if using sqlite-persistent
+          ${optionalString (cfg.database.type == "sqlite-persistent") ''
+          if [ ! -f ${stateDir}/database/koel.sqlite ]; then
+            echo "Creating SQLite database file..."
+            touch ${stateDir}/database/koel.sqlite
+            chmod 644 ${stateDir}/database/koel.sqlite
+          fi
+          ''}
+
           # Generate .env file before running composer
           echo "Generating environment configuration..."
           rm -f ${stateDir}/.env
