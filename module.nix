@@ -408,6 +408,9 @@ in {
       phpPackage = phpPackage;
       settings = {
         "listen" = cfg.listen;
+        "listen.owner" = config.services.caddy.user;
+        "listen.group" = config.services.caddy.group;
+        "listen.mode" = "0660";
       } // cfg.poolConfig;
     };
 
