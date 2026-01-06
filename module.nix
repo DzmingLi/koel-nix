@@ -466,6 +466,7 @@ in {
             echo "Generating environment configuration..."
             rm -f ${stateDir}/.env
             cp ${koelEnvTemplate} ${stateDir}/.env
+            chmod 600 ${stateDir}/.env
 
             # Add secrets from files
             ${optionalString (cfg.appKeyFile != null) ''
@@ -534,6 +535,7 @@ in {
           echo "Updating environment configuration..."
           rm -f ${stateDir}/.env
           cp ${koelEnvTemplate} ${stateDir}/.env
+          chmod 600 ${stateDir}/.env
 
           # Add secrets from files
           ${optionalString (cfg.appKeyFile != null) ''
