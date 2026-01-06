@@ -516,7 +516,9 @@ in {
           export npm_config_script_shell=${pkgs.bash}/bin/bash
           ${pkgs.nodejs}/bin/npm run build
 
-          # Set permissions
+          # Set permissions - allow web server to read files
+          chmod 755 ${stateDir}
+          chmod 755 ${stateDir}/public
           chmod -R 755 ${stateDir}/storage
           chmod -R 755 ${stateDir}/bootstrap/cache
 
@@ -556,6 +558,10 @@ in {
           ${optionalString (cfg.search.driver == "meilisearch" && cfg.search.meilisearch.keyFile != null) ''
           echo "MEILISEARCH_KEY=$(cat ${cfg.search.meilisearch.keyFile})" >> ${stateDir}/.env
           ''}
+
+          # Ensure permissions are correct
+          chmod 755 ${stateDir}
+          chmod 755 ${stateDir}/public
 
           echo "Koel is up to date."
         fi
