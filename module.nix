@@ -402,9 +402,14 @@ in {
       group = group;
       home = stateDir;
       createHome = true;
+      homeMode = "0755";
     };
 
     users.groups.${group} = {};
+
+    systemd.tmpfiles.rules = [
+      "d ${stateDir} 0755 ${user} ${group} -"
+    ];
 
     services.phpfpm.pools.koel = {
       user = user;
