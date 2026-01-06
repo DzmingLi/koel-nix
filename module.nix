@@ -382,6 +382,10 @@ in {
   };
 
   config = mkIf cfg.enable {
+    systemd.services.caddy.serviceConfig.ReadWritePaths = mkIf (hasPrefix "/" cfg.listen) (mkAfter [
+      (concatStringsSep "/" (init (splitString "/" cfg.listen)))
+    ]);
+
     assertions = [
       {
         assertion = cfg.storage.driver == "local" -> cfg.storage.mediaPath != null;
