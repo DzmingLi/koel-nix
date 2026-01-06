@@ -90,6 +90,49 @@ let
     ${cfg.extraConfig}
   '';
 
+  initialUserScript = pkgs.writeText "koel-initial-user.php" ''
+    <?php
+
+    use App\Enums\Acl\Role as RoleEnum;
+    use App\Models\Organization;
+    use App\Models\User;
+    use Illuminate\Support\Facades\Hash;
+
+    $root = '${stateDir}';
+    require $root . '/vendor/autoload.php';
+
+    $app = require $root . '/bootstrap/app.php';
+    $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->bootstrap();
+
+    $email = getenv('KOEL_INIT_EMAIL') ?: '';
+    $name = getenv('KOEL_INIT_NAME') ?: '';
+    $role = getenv('KOEL_INIT_ROLE') ?: 'admin';
+    $password = getenv('KOEL_INIT_PASSWORD') ?: '';
+
+    if ($email === '' || $password === '') {
+        fwrite(STDERR, "Missing KOEL_INIT_EMAIL or KOEL_INIT_PASSWORD\n");
+        exit(1);
+    }
+
+    if (User::query()->where('email', $email)->exists()) {
+        echo "User already exists, skipping.\n";
+        exit(0);
+    }
+
+    $organization = Organization::default();
+
+    $user = User::query()->create([
+        'email' => $email,
+        'name' => $name !== '' ? $name : $email,
+        'password' => Hash::make($password),
+        'organization_id' => $organization->id,
+    ]);
+
+    $user->syncRoles(RoleEnum::from($role));
+    echo "Created user {$email}.\n";
+  '';
+
   phpPackage = pkgs.php82.withExtensions ({ enabled, all }: with all; enabled ++ [
     exif
     gd
@@ -379,6 +422,47 @@ in {
       default = "";
       description = "Extra configuration to append to .env file.";
     };
+
+    initialUser = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Create an initial user if it does not exist yet.";
+      };
+
+      email = mkOption {
+        type = types.str;
+        default = "admin@koel.dev";
+        description = "Email address for the initial user.";
+      };
+
+      name = mkOption {
+        type = types.str;
+        default = "Admin";
+        description = "Display name for the initial user.";
+      };
+
+      role = mkOption {
+        type = types.enum [ "admin" "manager" "user" ];
+        default = "admin";
+        description = "Role for the initial user.";
+      };
+
+      password = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = ''
+          Password for the initial user. Storing a password here will put it in the Nix store.
+          Prefer passwordFile instead.
+        '';
+      };
+
+      passwordFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "Path to a file containing the initial user's password.";
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -394,6 +478,10 @@ in {
       {
         assertion = (cfg.appKey != null) != (cfg.appKeyFile != null);
         message = "Either services.koel.appKey or services.koel.appKeyFile must be set (but not both)";
+      }
+      {
+        assertion = cfg.initialUser.enable -> ((cfg.initialUser.password != null) != (cfg.initialUser.passwordFile != null));
+        message = "Either services.koel.initialUser.password or services.koel.initialUser.passwordFile must be set (but not both)";
       }
     ];
 
@@ -577,6 +665,38 @@ in {
 
           echo "Koel is up to date."
         fi
+      '';
+    };
+
+    systemd.services.koel-initial-user = mkIf cfg.initialUser.enable {
+      description = "Koel initial user creation";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "koel-setup.service" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = user;
+        Group = group;
+        WorkingDirectory = stateDir;
+        RemainAfterExit = true;
+      };
+
+      environment = {
+        KOEL_INIT_EMAIL = cfg.initialUser.email;
+        KOEL_INIT_NAME = cfg.initialUser.name;
+        KOEL_INIT_ROLE = cfg.initialUser.role;
+      };
+
+      path = [ phpPackage ];
+
+      script = ''
+        if [ -z "${cfg.initialUser.password or ""}" ]; then
+          export KOEL_INIT_PASSWORD="$(cat ${cfg.initialUser.passwordFile})"
+        else
+          export KOEL_INIT_PASSWORD="${cfg.initialUser.password}"
+        fi
+
+        ${phpPackage}/bin/php ${initialUserScript}
       '';
     };
 

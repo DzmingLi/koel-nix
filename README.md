@@ -189,6 +189,22 @@ TNTSearch is recommended for homelab (no extra services):
 services.koel.search.driver = "tntsearch";
 ```
 
+### Initial User (Declarative)
+
+Koel normally asks you to create the first admin account on first access. You can also create it declaratively:
+
+```nix
+services.koel.initialUser = {
+  enable = true;
+  email = "admin@example.com";
+  name = "Admin";
+  role = "admin";
+  passwordFile = "/run/agenix/koel-admin-password";
+};
+```
+
+Note: Using `password` directly will store it in the Nix store. Prefer `passwordFile`.
+
 Supported drivers: `tntsearch`, `database`, `algolia`, `meilisearch`
 
 ### Streaming
