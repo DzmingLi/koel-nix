@@ -9,15 +9,15 @@ let
   group = "koel";
   stateDir = "/var/lib/koel";
 
-  koelEnv = pkgs.writeText "koel.env" ''
+  koelEnvTemplate = pkgs.writeText "koel.env.template" ''
     APP_NAME=${cfg.appName}
     APP_ENV=${cfg.environment}
     APP_DEBUG=${boolToString cfg.debug}
     APP_URL=${cfg.url}
-    ${if cfg.appKeyFile != null then ''
-    APP_KEY=$(cat ${cfg.appKeyFile})
-    '' else ''
+    ${if cfg.appKeyFile == null then ''
     APP_KEY=${cfg.appKey}
+    '' else ''
+    # APP_KEY will be set at runtime from ${cfg.appKeyFile}
     ''}
 
     ${optionalString (cfg.trustedHosts != []) ''
@@ -31,8 +31,10 @@ let
     DB_PORT=${toString cfg.database.port}
     DB_DATABASE=${cfg.database.name}
     DB_USERNAME=${cfg.database.user}
-    ${optionalString (cfg.database.passwordFile != null) ''
-    DB_PASSWORD=$(cat ${cfg.database.passwordFile})
+    ${if cfg.database.passwordFile == null then ''
+    DB_PASSWORD=
+    '' else ''
+    # DB_PASSWORD will be set at runtime from ${cfg.database.passwordFile}
     ''}
     ''}
 
@@ -49,8 +51,10 @@ let
     SCOUT_DRIVER=${cfg.search.driver}
     ${optionalString (cfg.search.driver == "meilisearch") ''
     MEILISEARCH_HOST=${cfg.search.meilisearch.host}
-    ${optionalString (cfg.search.meilisearch.keyFile != null) ''
-    MEILISEARCH_KEY=$(cat ${cfg.search.meilisearch.keyFile})
+    ${if cfg.search.meilisearch.keyFile == null then ''
+    MEILISEARCH_KEY=
+    '' else ''
+    # MEILISEARCH_KEY will be set at runtime from ${cfg.search.meilisearch.keyFile}
     ''}
     ''}
 
@@ -486,9 +490,20 @@ in {
           mkdir -p ${stateDir}/bootstrap/cache
           mkdir -p ${stateDir}/database
 
-          # Link .env file
-          echo "Linking environment configuration..."
-          ln -sf ${koelEnv} ${stateDir}/.env
+          # Generate .env file
+          echo "Generating environment configuration..."
+          cp ${koelEnvTemplate} ${stateDir}/.env
+
+          # Add secrets from files
+          ${optionalString (cfg.appKeyFile != null) ''
+          echo "APP_KEY=$(cat ${cfg.appKeyFile})" >> ${stateDir}/.env
+          ''}
+          ${optionalString (cfg.database.type != "sqlite-persistent" && cfg.database.passwordFile != null) ''
+          echo "DB_PASSWORD=$(cat ${cfg.database.passwordFile})" >> ${stateDir}/.env
+          ''}
+          ${optionalString (cfg.search.driver == "meilisearch" && cfg.search.meilisearch.keyFile != null) ''
+          echo "MEILISEARCH_KEY=$(cat ${cfg.search.meilisearch.keyFile})" >> ${stateDir}/.env
+          ''}
 
           # Set permissions
           chmod -R 755 ${stateDir}/storage
@@ -515,7 +530,20 @@ in {
           echo "Koel setup completed successfully!"
         else
           # Just update .env
-          ln -sf ${koelEnv} ${stateDir}/.env
+          echo "Updating environment configuration..."
+          cp ${koelEnvTemplate} ${stateDir}/.env
+
+          # Add secrets from files
+          ${optionalString (cfg.appKeyFile != null) ''
+          echo "APP_KEY=$(cat ${cfg.appKeyFile})" >> ${stateDir}/.env
+          ''}
+          ${optionalString (cfg.database.type != "sqlite-persistent" && cfg.database.passwordFile != null) ''
+          echo "DB_PASSWORD=$(cat ${cfg.database.passwordFile})" >> ${stateDir}/.env
+          ''}
+          ${optionalString (cfg.search.driver == "meilisearch" && cfg.search.meilisearch.keyFile != null) ''
+          echo "MEILISEARCH_KEY=$(cat ${cfg.search.meilisearch.keyFile})" >> ${stateDir}/.env
+          ''}
+
           echo "Koel is up to date."
         fi
       '';
