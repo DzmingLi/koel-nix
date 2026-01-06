@@ -130,7 +130,7 @@ let
     ]);
 
     $user->syncRoles(RoleEnum::from($role));
-    echo "Created user {$email}.\n";
+    echo "Created user " . $email . ".\n";
   '';
 
   phpPackage = pkgs.php82.withExtensions ({ enabled, all }: with all; enabled ++ [
