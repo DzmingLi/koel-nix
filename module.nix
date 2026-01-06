@@ -464,6 +464,7 @@ in {
 
             # Generate .env file before running composer
             echo "Generating environment configuration..."
+            rm -f ${stateDir}/.env
             cp ${koelEnvTemplate} ${stateDir}/.env
 
             # Add secrets from files
@@ -531,6 +532,7 @@ in {
         else
           # Just update .env
           echo "Updating environment configuration..."
+          rm -f ${stateDir}/.env
           cp ${koelEnvTemplate} ${stateDir}/.env
 
           # Add secrets from files
